@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <string>
-#include <vector>
+#include "huffman.h"
 
 std::vector<char> parseFile(std::string fileName);
 std::vector<int> calcFrequency(std::vector<char>& bytes, std::vector<char>& chars);
@@ -19,6 +18,7 @@ int main()
     std::vector<char> chars;
     std::vector<int> frequencies = calcFrequency(bytes, chars);
     printFrequencies(chars, frequencies);
+    BinTree tree(chars, frequencies);
     std::cout << "Thank you, would you like to compress (press 1), decompress (press 2), or quit? (press anything else)" << std::endl;
     std::cin >> choice;
     while(choice == 1 || choice == 2)//fix this stuff once you've finished parseFile 
@@ -32,7 +32,6 @@ int main()
             decompress();
         }
     }
-
     
 }
 
