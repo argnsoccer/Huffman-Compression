@@ -21,6 +21,8 @@ class Node
         Node(char d, int f): data(d), frequency(f), min(d){}
         Node(Node* child1, Node* child2);
         int getFrequency(){return frequency;}
+        int getChildrenSize(){return children.size();}
+        virtual Node* findChar(char character);
         virtual char getData(){return data;}
         bool getIsLeaf(){return isLeaf;}
         virtual void clearBitStream(){bitstream.clear();}
@@ -54,7 +56,7 @@ class BinTree
     public:
         BinTree(std::vector<char> chars, std::vector<int> frequencies);
         void makeTree();
-
+        std::vector<Node*> *getTreeList(){return &nodeList;}
 };
 //------------------------Constructors-----------------------------------------------//
 
@@ -104,6 +106,25 @@ void Node::createBitStream()
 void LeafNode::createBitStream()//final addition of leaf bit
 {
     bitstream.push_back(bit);
+}
+
+Node* Node::findChar(char character)
+{
+    Node* cur = this;
+    if(cur->getData() == character)
+    {
+        return this;
+    }
+
+    for(int i = 0; i < children.size(); i++)
+    {
+        cur = children[i]->findChar(character);
+        if(cur->getData() == character)
+        {
+            break;
+        }
+    }
+    return cur;
 }
 
 void BinTree::makeTree()
