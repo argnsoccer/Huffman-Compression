@@ -11,13 +11,11 @@ class Node
         int frequency;
         char min;
         bool bit;
-        Node* left;
-        Node* right;
         bool isLeaf;
         std::vector<bool> bitstream;
     public:
         Node(){}
-        Node(const Node &n){data = n.data; frequency = n.frequency; left = n.left; right = n.right;}
+        Node(const Node &n){data = n.data; frequency = n.frequency; }
         Node(char d, int f): data(d), frequency(f), min(d){}
         Node(Node* child1, Node* child2);
         int getFrequency(){return frequency;}
@@ -29,6 +27,7 @@ class Node
         void setBitStream(std::vector<bool> bits){bitstream = bits;}
         std::vector<bool> getBitStream(){return bitstream;}
         virtual void createBitStream();
+        Node* getChild(int i){return &*children[i];}
 
     private:
         std::vector<Node*> children;
