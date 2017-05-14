@@ -54,6 +54,7 @@ class BinTree
     std::vector<Node*> min2Freqs;
     public:
         BinTree(std::vector<char> chars, std::vector<int> frequencies);
+        ~BinTree();
         void makeTree();
         std::vector<Node*> *getTreeList(){return &nodeList;}
 };
@@ -64,16 +65,16 @@ Node::Node(Node* child1, Node*child2)
     frequency = child1->getFrequency() + child2->getFrequency();
     bit = false;
     isLeaf = false;
-    child1->bit = 1;//left child is 1
-    child2->bit = 0;//right child is 0
+    child1->bit = 1;//left child is 0
+    child2->bit = 0;//right child is 1
     children.push_back(child1);
     children.push_back(child2);
 }
 
-LeafNode::LeafNode(char character, int frequency)
+LeafNode::LeafNode(char character, int freq)
 {
     data = character;
-    frequency = frequency;
+    frequency = freq;
     isLeaf = true;
 }
 
@@ -89,6 +90,20 @@ BinTree::BinTree(std::vector<char> chars, std::vector<int> frequencies)
         nodeList.push_back(new LeafNode(chars[i], frequencies[i]));//set up the list of leaf nodes
     }
 }
+//--------------------------------Destructors--------------------------------------//
+
+BinTree::~BinTree()
+{
+    for(int i = 0; i < nodeList.size(); i++)
+	{
+		delete nodeList[i];
+	}
+    for(int j = 0; j < min2Freqs.size(); j++)
+    {
+        delete min2Freqs[j];
+    }
+}
+
 
 //----------------------------Setting up methods------------------------------------//
 
@@ -96,7 +111,7 @@ void Node::createBitStream()
 {
     for(int i = 0; i < children.size(); i++)
     {
-        children[i]->bitstream = bitstream;//getting it initialized with the bitstream til then
+        children[i]->bitstream = bitstream;//getting it initialized with the bitstream 
         children[i]->bitstream.push_back(bit);//add the current bit
         children[i]->createBitStream();//recursively iterate to get all children and fill bitstream
     }
@@ -128,14 +143,14 @@ Node* Node::findChar(char character)
 
 void BinTree::makeTree()
 {
-    Node*temp = 0;
     int minFreq = nodeList[0]->getFrequency();
     int index = 0;
-    int twocount = 0;
     int count1 = 0;
     while(nodeList.size() > 1)
     {
-        while(twocount  < 2)//getting the lowest two frequencies
+        //std::cout << "nodeList.size() = " << nodeList.size() << std::endl;
+        //min2Freqs.clear();
+        for(int x = 0; x < 2; x++)//getting two lowest freqs
         {
             for(int i = 0; i < nodeList.size(); i++)
             {
@@ -145,39 +160,41 @@ void BinTree::makeTree()
                     minFreq = nodeList[i]->getFrequency();
                 }
             }
-            if(!nodeList[index]->getIsLeaf())//checks to see whether to push back a regular node or a leaf node
+
+            if(nodeList[index]->getIsLeaf())//checks to see whether to push back a regular node or a leaf node
             {
-                min2Freqs.push_back(new Node);
+                min2Freqs.push_back(new LeafNode(nodeList[index]->getData()));
+
             }
             else
             {
-                min2Freqs.push_back(new LeafNode(nodeList[index]->getData()));
+                min2Freqs.push_back(new Node);
             }
 
             *min2Freqs[min2Freqs.size()-1] = *nodeList[index];
+            //std::cout << "deleting index " << index << ": " << nodeList[index]->getData() << std::endl;
             delete nodeList[index];//removing from the list
-            nodeList.erase(nodeList.begin()+ index);//resizing list
+            nodeList.erase(nodeList.begin() + index);//resizing list
 
             if(nodeList.size() > 0)
             {
                 minFreq = nodeList[0]->getFrequency();//reset to start the loop over
             }
 
-            twocount++;
             index = 0;
         }
-        
+
+        //std::cout << "min2Freqs: " << min2Freqs[min2Freqs.size()-1]->getData() << ", " << min2Freqs[min2Freqs.size()-2]->getData() << std::endl;
+
         nodeList.push_back(new Node(min2Freqs[min2Freqs.size()-1], min2Freqs[min2Freqs.size()-2]));
         count1++;
-        twocount = 0;
     }
 
     nodeList[0]->clearBitStream();//don't want to accidentally add to the leaf node bitstream
 
-    for(int i = 0; i < nodeList.size(); i++)
-    {
-        nodeList[i]->createBitStream();
-    }
+    nodeList[0]->createBitStream();
+
+   
 }
 
 #endif

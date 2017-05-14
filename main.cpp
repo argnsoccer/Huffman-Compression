@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "huffman.h"
 
 std::vector<char> parseFile(std::string fileName);
@@ -8,6 +9,7 @@ std::vector<int> calcFrequencyCompressed(std::vector<char>& bytes, std::vector<c
 void compress(std::vector<Node*> *nodeList, std::string outFile, std::vector<char>& bytes, std::vector<char>& chars, std::vector<int>& frequencies);
 void printFrequencies(std::vector<char>& chars, std::vector<int>& frequencies);
 void decompress(std::vector<Node*> *nodeList, std::vector<char>& bytes, std::string inFile, std::string outFile);
+std::string getBitsInChar(char dummyByte);
 
 int main()
 {
@@ -34,7 +36,7 @@ int main()
             bytes = parseFile(fileName);
             //origFileSize = bytes.size();
             frequencies = calcFrequency(bytes, chars);
-            printFrequencies(chars, frequencies);
+            //printFrequencies(chars, frequencies);
             BinTree tree(chars, frequencies);
             tree.makeTree();//forms the binary tree
 
@@ -53,7 +55,7 @@ int main()
             bytes = parseFile(fileName);
 
             frequencies = calcFrequencyCompressed(bytes, chars);
-            printFrequencies(chars, frequencies);
+            //printFrequencies(chars, frequencies);
             BinTree reconstructedTree(chars, frequencies);
             reconstructedTree.makeTree();
             std::string decompressedFileName = fileName;
@@ -64,7 +66,6 @@ int main()
         std::cout << "Thank you for choosing an option. Keep going? (1 to compress, 2 to decompress, anything else to quit)" <<std::endl;
         std::cin >> choice;
     }
-    
 }
 
 std::vector<int> calcFrequency(std::vector<char>& bytes, std::vector<char>& chars)
@@ -75,14 +76,14 @@ std::vector<int> calcFrequency(std::vector<char>& bytes, std::vector<char>& char
     {
         for(int j = 0; j < chars.size(); j++)
         {
-            if(bytes[i] == chars[j])
+            if(bytes[i] == chars[j] && bytes[j] != '\n')
             {
                 frequency[j]++;
                 exists = true;
                 break;
             }
         }
-        if(!exists)
+        if(!exists && (bytes[i] != '\n' || bytes[i] != '\r'))
         {
             chars.push_back(bytes[i]);
             frequency.push_back(1);
@@ -109,14 +110,14 @@ std::vector<int> calcFrequencyCompressed(std::vector<char>& bytes, std::vector<c
         chars[j] = bytes[i];
         i++;
 
-        while(bytes[i] != ';')
+        while(bytes[i] != ',')
         {
             temp.push_back(bytes[i]);
             i++;
         }
         i++;
 
-        frequency[j] = std::stoi(temp,nullptr,0);
+        frequency[j] = std::stoi(temp, nullptr, 0);
         temp.clear();
 
         if(chars[j] == '0' || frequency[j] == '0')
@@ -147,7 +148,7 @@ std::vector<char> parseFile(std::string fileName)//reads the file and loads into
     char nextChar;
     if(fileReader.is_open())
     {
-        while(fileReader.get(nextChar))//read in file while there is data
+        while(fileReader.good() && fileReader.get(nextChar))//read in file while there is data
         {
             bytesInFile.push_back(nextChar);
         }
@@ -165,6 +166,7 @@ void compress(std::vector<Node*> *nodeList, std::string outFile, std::vector<cha
     int bitPos = 128;
     std::ofstream fileWriter;
     std::vector<bool> bitstream;
+    bitstream.clear();
 
     fileWriter.open(outFile.c_str(), std::ios::binary);
 
@@ -172,10 +174,10 @@ void compress(std::vector<Node*> *nodeList, std::string outFile, std::vector<cha
     {
         fileWriter << chars[a];
         fileWriter << frequencies[a];
-        fileWriter << ";";
+        fileWriter << ",";
     }
 
-    fileWriter << "00" << ";";
+    fileWriter << "00" << ",";
 
     for(int i = 0; i < bytes.size(); i++)
     {
@@ -185,7 +187,7 @@ void compress(std::vector<Node*> *nodeList, std::string outFile, std::vector<cha
             {
                 cur = nodeList[0][j]->findChar(bytes[i]);
                 bitstream = cur->getBitStream();
-                for(int x = 0; x < bitstream.size(); x++)//all these operations are to aggregate the bits into bytes by performing bit operations
+                for(int x = 1; x < bitstream.size(); x++)//all these operations are to aggregate the bits into bytes by performing bit operations
                 {
                     if(bitstream[x])
                     {
@@ -204,6 +206,7 @@ void compress(std::vector<Node*> *nodeList, std::string outFile, std::vector<cha
                     if(bitCount == 8 || (i == bytes .size() -1) && (x == bitstream.size() -1))
                     {
                         fileWriter << tempByte;//write byte out to file
+                        //std::cout << getBitsInChar(tempByte);
                         bitCount = 0;//reset bit counter and tempByte to start again
                         tempByte = tempByte & 0;
 
@@ -239,19 +242,22 @@ void decompress(std::vector<Node*> *nodeList, std::vector<char>& bytes, std::str
         chars[j] = bytes[i];
         i++;
 
-        while(bytes[i] != ';')
+        while(bytes[i] != ',')
         {
-            temp.push_back(bytes[i]);//just moving the iterator this time
+
+            temp.push_back(bytes[i]);
             i++;
         }
         i++;
 
+        //frequency[j] = std::stoi(temp, nullptr, 0);
         frequency[j] = bytes[i];
+       
         temp.clear();
 
         if(chars[j] == '0' || frequency[j] == '0')
         {
-            i = i + 3;
+            i = i + 3;//escaping the "00,"
             for(i; i < bytes.size();)
             {
                 for(int a = 0; a < bitCount; a++)
@@ -266,9 +272,10 @@ void decompress(std::vector<Node*> *nodeList, std::vector<char>& bytes, std::str
                     {
                         cur = cur->getChild(0);
 
-                        if(cur->getChildrenSize() == 0)
+                        if(cur->getIsLeaf())//if leaf
                         {
                             fileWriter << cur->getData();
+                            //std::cout << cur->getData() << std::endl;
                             fileSize++;
                             cur = &*nodeList[0][0];
                         }
@@ -277,13 +284,15 @@ void decompress(std::vector<Node*> *nodeList, std::vector<char>& bytes, std::str
                 else
                 {
                     bitstream.push_back(0);
+
                     if(cur->getChildrenSize() > 0)
                     {
                         cur = cur->getChild(1);
 
-                        if(cur->getChildrenSize() == 0)
+                        if(cur->getIsLeaf())
                         {
                             fileWriter << cur->getData();
+                            //std::cout << cur->getData();
                             fileSize++;
                             cur = &*nodeList[0][0];
                         }
@@ -298,10 +307,47 @@ void decompress(std::vector<Node*> *nodeList, std::vector<char>& bytes, std::str
                     i++;
                 }
             }
+            // int c = 0;
+            // for(unsigned int z = 0; z < bitstream.size(); z++)
+	        // {
+
+		    //     std::cout << bitstream[z];
+		    //     c++;
+		    //     if(c == 8)
+		    //     {
+			//         std::cout << std::endl;
+			//         c = 0;
+		    //     }
+            // }
+
             fileWriter.close();
 
             flag = false;
         }
         j++;
     }
+}
+
+std::string getBitsInChar(char dummyByte)
+{
+	int bitPosition = 128;
+	std::string bits;
+	for(int i = 0; i < 8; i++)
+	{
+		for(int j = 0; j < i; j++)
+		{
+			bitPosition = bitPosition/2;
+		}
+		if((dummyByte & bitPosition) == bitPosition)
+		{
+			bits.push_back('1');  
+		}
+		else 
+			bits.push_back('0');
+		bitPosition = 128;
+		
+			
+	}
+	bits.push_back('\n');
+	return bits;
 }
