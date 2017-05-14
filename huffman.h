@@ -65,8 +65,8 @@ Node::Node(Node* child1, Node*child2)
     frequency = child1->getFrequency() + child2->getFrequency();
     bit = false;
     isLeaf = false;
-    child1->bit = 1;//left child is 0
-    child2->bit = 0;//right child is 1
+    child1->bit = 0;//left child is 0
+    child2->bit = 1;//right child is 1
     children.push_back(child1);
     children.push_back(child2);
 }
@@ -148,8 +148,7 @@ void BinTree::makeTree()
     int count1 = 0;
     while(nodeList.size() > 1)
     {
-        //std::cout << "nodeList.size() = " << nodeList.size() << std::endl;
-        //min2Freqs.clear();
+
         for(int x = 0; x < 2; x++)//getting two lowest freqs
         {
             for(int i = 0; i < nodeList.size(); i++)
@@ -172,7 +171,7 @@ void BinTree::makeTree()
             }
 
             *min2Freqs[min2Freqs.size()-1] = *nodeList[index];
-            //std::cout << "deleting index " << index << ": " << nodeList[index]->getData() << std::endl;
+            
             delete nodeList[index];//removing from the list
             nodeList.erase(nodeList.begin() + index);//resizing list
 
@@ -184,7 +183,7 @@ void BinTree::makeTree()
             index = 0;
         }
 
-        //std::cout << "min2Freqs: " << min2Freqs[min2Freqs.size()-1]->getData() << ", " << min2Freqs[min2Freqs.size()-2]->getData() << std::endl;
+        
 
         nodeList.push_back(new Node(min2Freqs[min2Freqs.size()-1], min2Freqs[min2Freqs.size()-2]));
         count1++;
